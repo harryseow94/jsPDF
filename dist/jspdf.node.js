@@ -5440,7 +5440,7 @@ function jsPDF(options) {
     if (apiMode === ApiMode.COMPAT) {
       h = -h;
     }
-
+    
     out(
       [
         hpf(scale(x)),
@@ -10857,7 +10857,6 @@ var AcroForm = jsPDF.AcroForm;
     }
 
     initialize.call(this);
-
     var image = processImageData.call(
       this,
       imageData,
@@ -12268,7 +12267,7 @@ var AcroForm = jsPDF.AcroForm;
           currentCell.y = margins.top;
           if (printHeaders && tableHeaderRow) {
             this.printHeaderRow(currentCell.lineNumber, true);
-            currentCell.y += tableHeaderRow[0].height;
+            currentCell.y += tableHeaderRow[0].height + this.internal.__cell__.newPageMargin;
           }
         } else {
           currentCell.y = lastCell.y + lastCell.height || currentCell.y;
@@ -12277,11 +12276,12 @@ var AcroForm = jsPDF.AcroForm;
     }
 
     if (typeof currentCell.text[0] !== "undefined") {
+      this.setDrawColor(235, 235, 235);
       this.rect(
         currentCell.x,
         currentCell.y,
         currentCell.width,
-        currentCell.height,
+        ((printingHeaderRow === true) ? currentCell.height : 0),
         printingHeaderRow === true ? "FD" : undefined
       );
       if (currentCell.align === "right") {
@@ -12337,6 +12337,7 @@ var AcroForm = jsPDF.AcroForm;
      * @param {Object} [config.headerTextColor] default is #000 (optional)
      * @param {Object} [config.rowStart] callback to handle before print each row (optional)
      * @param {Object} [config.cellStart] callback to handle before print each cell (optional)
+     * @param {Object} [config.newPageMargin] default is 0
      * @returns {jsPDF} jsPDF-instance
      */
 
@@ -12370,7 +12371,8 @@ var AcroForm = jsPDF.AcroForm;
         Object.assign({ width: this.getPageWidth() }, NO_MARGINS),
       padding = typeof config.padding === "number" ? config.padding : 3,
       headerBackgroundColor = config.headerBackgroundColor || "#c8c8c8",
-      headerTextColor = config.headerTextColor || "#000";
+      headerTextColor = config.headerTextColor || "#000",
+      newPageMargin = config.newPageMargin || "0";
 
     _reset.call(this);
 
@@ -12380,6 +12382,7 @@ var AcroForm = jsPDF.AcroForm;
     this.internal.__cell__.padding = padding;
     this.internal.__cell__.headerBackgroundColor = headerBackgroundColor;
     this.internal.__cell__.headerTextColor = headerTextColor;
+    this.internal.__cell__.newPageMargin = newPageMargin;
     this.setFontSize(fontSize);
 
     // Set header values
@@ -12534,6 +12537,7 @@ var AcroForm = jsPDF.AcroForm;
     }
     this.internal.__cell__.table_x = x;
     this.internal.__cell__.table_y = y;
+    // this.internal.__cell__.table_y = Number(y + this.internal.__cell__.newPageMargin);
     return this;
   };
 
@@ -12608,6 +12612,7 @@ var AcroForm = jsPDF.AcroForm;
         this,
         this.internal.__cell__.pages
       );
+
       this.internal.__cell__.lastCell = new Cell(
         position[0],
         position[1],
@@ -12623,7 +12628,7 @@ var AcroForm = jsPDF.AcroForm;
     for (var i = 0; i < this.internal.__cell__.tableHeaderRow.length; i += 1) {
       tableHeaderCell = this.internal.__cell__.tableHeaderRow[i].clone();
       if (new_page) {
-        tableHeaderCell.y = this.internal.__cell__.margins.top || 0;
+        tableHeaderCell.y = this.internal.__cell__.margins.top + this.internal.__cell__.newPageMargin;
         tempHeaderConf.push(tableHeaderCell);
       }
       tableHeaderCell.lineNumber = lineNumber;
